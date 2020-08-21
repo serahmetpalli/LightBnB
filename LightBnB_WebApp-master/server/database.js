@@ -142,7 +142,7 @@ const getAllProperties = function(options, limit = 10) {
     }
 
     if (options.minimum_price_per_night) {
-        queryParams.push(options.minimum_price_per_night);
+        queryParams.push(options.minimum_price_per_night * 100);
         filterQuery.push(`cost_per_night >= $${queryParams.length}`);
     }
 
@@ -154,7 +154,7 @@ const getAllProperties = function(options, limit = 10) {
 
     queryParams.push(limit);
 
-    if (queryParams.length > 0) {
+    if (filterQuery.length > 0) {
         queryString += `WHERE ${filterQuery.join (' AND ')} `
     }
 
@@ -164,8 +164,6 @@ const getAllProperties = function(options, limit = 10) {
     `;
 
     queryString += `LIMIT $${queryParams.length}`;
-
-
 
     // 5
     console.log(queryString, queryParams);
@@ -186,10 +184,31 @@ exports.getAllProperties = getAllProperties;
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
+
 const addProperty = function(property) {
-    const propertyId = Object.keys(properties).length + 1;
-    property.id = propertyId;
-    properties[propertyId] = property;
-    return Promise.resolve(property);
+    console.log('PROPERTY', property);
+    return pool.query(`
+    INSERT INTO properties (owner_id, title, description,thumbnail_photo_url, cover_photo_url,cost_per_night,street,city,province,post_code,country,parking_spaces,number_of_bathrooms,number_of_bedrooms) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *;
+  `, [
+            property.owner_id,
+            property.title,
+            property.description,
+            property.thumbnail_photo_url,
+            property.cover_photo_url,
+            property.cost_per_night || 0,
+            property.street,
+            property.city,
+            property.province,
+            property.post_code,
+            property.country,
+            property.parking_spaces || 0,
+            property.number_of_bathrooms || 0,
+            property.number_of_bedrooms || 0
+        ])
+        .then(res => {
+            console.log(res.rows)
+            return res.rows
+        });
+
 }
 exports.addProperty = addProperty;
